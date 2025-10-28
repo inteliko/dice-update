@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: ['dicesbyceez.com', '162.0.211.27', 'localhost'],
   },
   plugins: [
     react(),
