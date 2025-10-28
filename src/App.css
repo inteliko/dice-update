@@ -1,0 +1,196 @@
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #000000aa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #000000aa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #444;
+}
+
+/* Black and white theme additions */
+.button-black {
+  background-color: #000;
+  color: #fff;
+  transition: all 0.3s ease;
+}
+
+.button-black:hover {
+  background-color: #333;
+}
+
+.button-white {
+  background-color: #fff;
+  color: #000;
+  border: 1px solid #000;
+  transition: all 0.3s ease;
+}
+
+.button-white:hover {
+  background-color: #f5f5f5;
+}
+
+/* Responsive mosaic preview styles - UPDATED */
+.mosaic-preview-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 15px;
+  overflow-y: visible;
+  overflow-x: visible;
+}
+
+@media (max-width: 768px) {
+  .mosaic-preview-container {
+    padding: 0 10px;
+  }
+}
+
+/* Style for the preview section - UPDATED */
+.preview-section {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  margin: 20px 0 40px;
+  overflow: visible !important;
+  height: auto !important;
+}
+
+.preview-section h3 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.mosaic-info-grid {
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+  padding: 15px 0;
+}
+
+/* Canvas container styling - UPDATED */
+.canvas-container {
+  width: 100%;
+  overflow-x: auto;
+  max-height: none;
+}
+
+.canvas-container canvas {
+  max-width: 100%;
+  height: auto !important;
+  border: 1px solid #eee;
+}
+
+/* Ash color for gallery background */
+.gallery-section {
+  background-color: #F1F0FB;
+  padding: 3rem 1rem;
+}
+
+/* Fix for the preview display - UPDATED */
+.fixed-preview {
+  max-height: none !important;
+  overflow: visible !important;
+  height: auto !important;
+}
+
+@media (max-width: 640px) {
+  .mosaic-info-grid .grid {
+    grid-template-columns: 1fr 1fr;
+    text-align: left;
+  }
+  
+  .mosaic-info-grid .grid > div:nth-child(even) {
+    text-align: right;
+  }
+  
+  .preview-section h3 {
+    font-size: 1.1rem;
+  }
+  
+  /* Ensure content is visible on small screens */
+  #root {
+    padding: 1rem;
+  }
+  
+  /* Make download buttons stack on mobile */
+  .flex-wrap {
+    flex-wrap: wrap;
+  }
+
+  /* Prevent text overflow on buttons */
+  button span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Additional fixes for the preview container */
+.preview-content-wrapper {
+  padding: 0;
+  overflow: visible;
+  height: auto !important;
+}
+
+/* Make sure the preview scrolls if needed */
+.dice-preview-scroll {
+  overflow-y: auto;
+  max-height: none;
+}
+
+/* Fix for button text overflow */
+button {
+  overflow: hidden;
+}
+
+button span {
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* Fix for the increase/decrease buttons in calculate page */
+@media (max-width: 768px) {
+  .flex-1 {
+    min-width: 0;
+  }
+
+  button span.truncate {
+    max-width: 100%;
+    display: inline-block;
+  }
+}
