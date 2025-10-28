@@ -82,11 +82,7 @@ const Header = () => {
                 </Link>
               </li>
               
-              <li className="px-4 pt-2">
-                <Button className="w-full bg-dice-primary hover:bg-dice-secondary">
-                  Get Started
-                </Button>
-              </li>
+              {/* Removed Get Started button as requested */}
             </ul>
           </nav>
         </div>

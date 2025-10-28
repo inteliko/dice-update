@@ -406,23 +406,42 @@ const Calculate = () => {
             <h1 className="text-2xl font-bold mb-6">Calculate Dice Mosaic</h1>
             {/* Image Upload */}
             <ImageUploader onImageUpload={handleImageUpload} />
-            {/* Controls */}
-            <div className="flex gap-4 my-6">
-              <Label>Width</Label>
-              <Input type="number" value={width} onChange={e => setWidth(Number(e.target.value))} min={10} max={100} />
-              <Label>Height</Label>
-              <Input type="number" value={height} onChange={e => setHeight(Number(e.target.value))} min={10} max={100} />
-              <Label>Contrast</Label>
-              <Input type="number" value={contrast} onChange={e => setContrast(Number(e.target.value))} min={0} max={100} />
-              <Label>Brightness</Label>
-              <Input type="number" value={brightness} onChange={e => setBrightness(Number(e.target.value))} min={0} max={100} />
-              <Label>Theme</Label>
-              <ToggleGroup type="single" value={diceTheme} onValueChange={handleThemeChange}>
-                <ToggleGroupItem value="mixed">Mixed</ToggleGroupItem>
-                <ToggleGroupItem value="black">Black</ToggleGroupItem>
-                <ToggleGroupItem value="white">White</ToggleGroupItem>
-              </ToggleGroup>
-              <Button onClick={processCurrentImage}>Generate Mosaic</Button>
+            {/* Controls - responsive: stack on small screens, inline on md+ */}
+            <div className="flex flex-col md:flex-row md:items-end gap-4 my-6">
+              <div className="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+                <Label className="whitespace-nowrap">Width</Label>
+                <Input className="w-full md:w-24" type="number" value={width} onChange={e => setWidth(Number(e.target.value))} min={10} max={100} />
+              </div>
+
+              <div className="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+                <Label className="whitespace-nowrap">Height</Label>
+                <Input className="w-full md:w-24" type="number" value={height} onChange={e => setHeight(Number(e.target.value))} min={10} max={100} />
+              </div>
+
+              <div className="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+                <Label className="whitespace-nowrap">Contrast</Label>
+                <Input className="w-full md:w-24" type="number" value={contrast} onChange={e => setContrast(Number(e.target.value))} min={0} max={100} />
+              </div>
+
+              <div className="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+                <Label className="whitespace-nowrap">Brightness</Label>
+                <Input className="w-full md:w-24" type="number" value={brightness} onChange={e => setBrightness(Number(e.target.value))} min={0} max={100} />
+              </div>
+
+              <div className="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+                <Label className="whitespace-nowrap">Theme</Label>
+                <div className="w-full md:w-auto">
+                  <ToggleGroup type="single" value={diceTheme} onValueChange={handleThemeChange}>
+                    <ToggleGroupItem value="mixed">Mixed</ToggleGroupItem>
+                    <ToggleGroupItem value="black">Black</ToggleGroupItem>
+                    <ToggleGroupItem value="white">White</ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+              </div>
+
+              <div className="w-full md:w-auto">
+                <Button className="w-full md:w-auto" onClick={processCurrentImage}>Generate Mosaic</Button>
+              </div>
             </div>
             {/* Preview */}
             {isProcessing && (
@@ -456,7 +475,7 @@ const Calculate = () => {
                 <DialogHeader>
                   <DialogTitle>Dice Mosaic Output</DialogTitle>
                 </DialogHeader>
-                <DiceCanvas ref={canvasRef} diceGrid={diceGrid} settings={settings as MosaicSettings} />
+                <DiceCanvas onCanvasReady={(c: HTMLCanvasElement) => { canvasRef.current = c; }} diceGrid={diceGrid} settings={settings as MosaicSettings} />
               </DialogContent>
             </Dialog>
           </div>
