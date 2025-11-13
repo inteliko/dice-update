@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -127,6 +127,23 @@ const MosaicControls = ({ onGenerate, blackDiceCount = 0, whiteDiceCount = 0, di
       });
     }
   };
+
+  // Auto-generate when controls change (debounced)
+  const didMountRef = useRef(false);
+  useEffect(() => {
+    // Skip auto-generate on initial mount
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+
+    const handler = setTimeout(() => {
+      handleGenerate();
+    }, 300); // debounce 300ms — change if you want faster/slower
+
+    return () => clearTimeout(handler);
+    // stringifying faceColors to track deep changes
+  }, [gridSize, gridWidth, gridHeight, diceSizeMm, contrast, brightness, useShading, activeTheme, independentDimensions, JSON.stringify(faceColors)]);
 
   // Calc estimated dice count
   const estimatedDiceCount = independentDimensions 

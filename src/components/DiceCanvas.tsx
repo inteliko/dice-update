@@ -9,9 +9,15 @@ interface DiceCanvasProps {
   settings: MosaicSettings;
   onCanvasReady: (canvas: HTMLCanvasElement) => void;
   zoomLevel?: number;
+  // Optional per-tile overrides for manual editing
+  editedGrid?: Array<Array<{
+    face?: number;
+    color?: string;
+    pipColor?: string;
+  }>>;
 }
 
-const DiceCanvas = ({ diceGrid, settings, onCanvasReady, zoomLevel = 1 }: DiceCanvasProps) => {
+const DiceCanvas = ({ diceGrid, settings, onCanvasReady, zoomLevel = 1, editedGrid }: DiceCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isMobile = useIsMobile();
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
@@ -74,20 +80,23 @@ const DiceCanvas = ({ diceGrid, settings, onCanvasReady, zoomLevel = 1 }: DiceCa
     // Draw each dice cell with improved styling and resolution
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
-        const diceValue = diceGrid[row][col];
+        // Use editedGrid override if provided
+        const override = editedGrid && editedGrid[row] && editedGrid[row][col];
+        const diceValue = override && typeof override.face === 'number' ? override.face : diceGrid[row][col];
         const x = col * zoomedCellSize;
         const y = row * zoomedCellSize;
-        
-        // Set color based on the dice face value
-        const diceColor = settings.faceColors[diceValue] || "#ffffff";
+
+        // Determine dice color: override color > settings.faceColors[diceValue] > default
+        const diceColor = (override && override.color) || settings.faceColors[diceValue] || "#ffffff";
         ctx.fillStyle = diceColor;
-        
+
         // For a cleaner look, draw dice background with small gap between dice
         const padding = zoomedCellSize * 0.01; // Reduced padding for more accurate image representation
         ctx.fillRect(x + padding, y + padding, zoomedCellSize - padding * 2, zoomedCellSize - padding * 2);
-        
+
         // Draw the dots with improved visibility
         if (zoomedCellSize > 4 && settings.useShading) {
+          // pip color override not currently passed to drawDiceFace, but drawDiceFace uses diceColor to compute
           drawDiceFace(ctx, diceValue, x, y, zoomedCellSize, diceColor);
         }
       }

@@ -14,9 +14,14 @@ interface DicePreviewProps {
   blackDiceCount: number;
   whiteDiceCount: number;
   isVisible: boolean;
+  // optional editedGrid to allow manual per-tile overrides
+  editedGrid?: Array<Array<{
+    face?: number;
+    color?: string;
+    pipColor?: string;
+  }>>;
 }
-
-const DicePreview = ({ diceGrid, settings, blackDiceCount, whiteDiceCount, isVisible }: DicePreviewProps) => {
+const DicePreview = ({ diceGrid, settings, blackDiceCount, whiteDiceCount, isVisible, editedGrid }: DicePreviewProps) => {
   const [currentCanvas, setCurrentCanvas] = useState<HTMLCanvasElement | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const { toast } = useToast();
@@ -179,6 +184,7 @@ const DicePreview = ({ diceGrid, settings, blackDiceCount, whiteDiceCount, isVis
               settings={settings}
               onCanvasReady={setCurrentCanvas}
               zoomLevel={zoomLevel}
+              editedGrid={editedGrid}
             />
           </div>
           

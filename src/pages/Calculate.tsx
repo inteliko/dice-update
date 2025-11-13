@@ -49,6 +49,8 @@ const Calculate = () => {
   const [diceCount, setDiceCount] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [dicePrice, setDicePrice] = useState<number>(0.10);
+  // Edited grid for manual per-tile edits: same shape as diceGrid, each cell may override face/color
+  const [editedGrid, setEditedGrid] = useState<Array<Array<{ face: number; color?: string; pipColor?: string }>> | null>(null);
   const [settings, setSettings] = useState<Settings>({
     gridSize: DEFAULT_SIZE,
     contrast: 50,
@@ -98,23 +100,25 @@ const Calculate = () => {
     }
   };
 
-  // Helper to get face colors by theme
-  const getFaceColors = (theme: "black" | "white" | "mixed") => {
+  // Helper to get face colors by theme. Black/White force pure colors. Mixed alternates two chosen colors.
+  const getFaceColors = (theme: "black" | "white" | "mixed", mixedA?: string, mixedB?: string) => {
     if (theme === "black") {
-      return { 1: "#222222", 2: "#222222", 3: "#222222", 4: "#222222", 5: "#222222", 6: "#222222" };
+      return { 1: "#000000", 2: "#000000", 3: "#000000", 4: "#000000", 5: "#000000", 6: "#000000" };
     }
     if (theme === "white") {
       return { 1: "#FFFFFF", 2: "#FFFFFF", 3: "#FFFFFF", 4: "#FFFFFF", 5: "#FFFFFF", 6: "#FFFFFF" };
     }
-    // Mixed
-    return { 1: "#FFFFFF", 2: "#DDDDDD", 3: "#BBBBBB", 4: "#888888", 5: "#555555", 6: "#222222" };
+    // Mixed: alternate the two chosen colors (fallback to white/black)
+    const a = mixedA || "#FFFFFF";
+    const b = mixedB || "#222222";
+    return { 1: a, 2: b, 3: a, 4: b, 5: a, 6: b };
   };
 
   // Update settings when theme changes
   useEffect(() => {
     setSettings(prev => ({
       ...prev,
-      faceColors: getFaceColors(diceTheme),
+      faceColors: getFaceColors(diceTheme, mixedColor1, mixedColor2),
       theme: diceTheme,
     }));
     // If image is loaded, re-process mosaic
@@ -167,6 +171,7 @@ const Calculate = () => {
       const totalDice = grid.length * grid[0].length;
       setDiceCount(totalDice);
 
+      const faceColors = getFaceColors(diceTheme, mixedColor1, mixedColor2);
       setSettings(prev => ({
         ...prev,
         gridSize: "custom" as const,
@@ -175,8 +180,12 @@ const Calculate = () => {
         contrast,
         diceSizeMm: 1.6,
         theme: diceTheme,
-        faceColors: getFaceColors(diceTheme),
+        faceColors,
       }));
+
+      // Initialize editedGrid with default per-tile values so users can manually edit
+      const initialEdited = grid.map(row => row.map(v => ({ face: v, color: faceColors[v] })));
+      setEditedGrid(initialEdited);
 
       toast({
         title: "Image processed successfully",
@@ -291,13 +300,17 @@ const Calculate = () => {
 
   const downloadCSV = () => {
     if (diceGrid.length === 0) return;
-    
+
     const headers = ["Row", "Column", "Dice Value"];
     const csvRows = [headers];
 
     diceGrid.forEach((row, rowIndex) => {
       row.forEach((value, colIndex) => {
-        csvRows.push([String(rowIndex + 1), String(colIndex + 1), String(value)]);
+        // prefer editedGrid face if available
+        const face = editedGrid && editedGrid[rowIndex] && editedGrid[rowIndex][colIndex]
+          ? editedGrid[rowIndex][colIndex].face
+          : value;
+        csvRows.push([String(rowIndex + 1), String(colIndex + 1), String(face)]);
       });
     });
 
@@ -357,6 +370,76 @@ const Calculate = () => {
     toast({
       title: "Download started",
       description: "Your high-resolution dice mosaic image has been downloaded.",
+    });
+  };
+
+  // New states for post-generation manual edits & mixed palette
+  const [diceFaceColor, setDiceFaceColor] = useState<string | null>(null);
+  const [pipColor, setPipColor] = useState<string | null>(null);
+  const [forceFace, setForceFace] = useState<number | null>(null); // 1-6 to force a single face, or null
+  const [mixedColor1, setMixedColor1] = useState<string>("#ffcc00");
+  const [mixedColor2, setMixedColor2] = useState<string>("#00aaff");
+
+  // assume there is a function that triggers mosaic generation:
+  // function handleGenerate() { ... }
+
+  // Remove Cost Estimate: delete the JSX block that rendered the cost estimate component/section
+  // { /* Cost Estimate section removed */ }
+
+  // Theme-based computed colors for dice faces & pips
+  const computeFaceAndPip = () => {
+    if (diceTheme === "black") {
+      return { face: "#000000", pip: "#ffffff" };
+    }
+    if (diceTheme === "white") {
+      return { face: "#ffffff", pip: "#000000" };
+    }
+    // mixed: use palette or user overrides
+    if (diceTheme === "mixed") {
+      return {
+        face: diceFaceColor ?? mixedColor1,
+        pip: pipColor ?? mixedColor2,
+      };
+    }
+    // default or 'mixed' fallback
+    return {
+      face: diceFaceColor ?? "#ffffff",
+      pip: pipColor ?? "#000000",
+    };
+  };
+
+  // Auto-generate when controls change
+  // debounce auto-generate when controls change
+  useEffect(() => {
+    if (!imageFile) return;
+    const t = setTimeout(() => {
+      processCurrentImage();
+    }, 300);
+    return () => clearTimeout(t);
+  }, [
+    width,
+    height,
+    contrast,
+    brightness,
+    diceTheme,
+    diceFaceColor,
+    pipColor,
+    mixedColor1,
+    mixedColor2,
+    forceFace,
+    imageFile,
+  ]);
+
+  // Editing UI state
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingTile, setEditingTile] = useState<{ r: number; c: number } | null>(null);
+
+  const applyTileEdit = (r: number, c: number, patch: Partial<{ face: number; color?: string; pipColor?: string }>) => {
+    setEditedGrid((prev) => {
+      if (!prev) return prev;
+      const copy = prev.map(row => row.map(cell => ({ ...cell })));
+      copy[r][c] = { ...copy[r][c], ...patch } as { face: number; color?: string; pipColor?: string };
+      return copy;
     });
   };
 
@@ -457,16 +540,15 @@ const Calculate = () => {
                   blackDiceCount={blackDiceCount}
                   whiteDiceCount={whiteDiceCount}
                   isVisible={true}
+                  editedGrid={editedGrid ?? undefined}
                 />
                 <div className="mt-4">
                   <Button onClick={downloadCSV}>Download CSV</Button>
                   <Button onClick={downloadPNG}>Download PNG</Button>
                   <Button onClick={openOutput}>Show Output</Button>
+                  <Button onClick={() => setIsEditOpen((s) => !s)} className="ml-2">Edit Mosaic</Button>
                 </div>
-                <div className="mt-4">
-                  <p>Total Dice: {actualDiceCount}</p>
-                  <p>Total Cost: ${totalCost}</p>
-                </div>
+                
               </div>
             )}
             {/* Output Dialog */}
@@ -475,9 +557,153 @@ const Calculate = () => {
                 <DialogHeader>
                   <DialogTitle>Dice Mosaic Output</DialogTitle>
                 </DialogHeader>
-                <DiceCanvas onCanvasReady={(c: HTMLCanvasElement) => { canvasRef.current = c; }} diceGrid={diceGrid} settings={settings as MosaicSettings} />
+                  <DiceCanvas onCanvasReady={(c: HTMLCanvasElement) => { canvasRef.current = c; }} diceGrid={diceGrid} settings={settings as MosaicSettings} editedGrid={editedGrid ?? undefined} />
               </DialogContent>
             </Dialog>
+
+            {/* New manual-edit controls */}
+            <div className="manual-edit-controls mt-4 flex flex-col md:flex-row gap-3">
+              <div className="w-full md:w-auto">
+                <label className="block text-sm">Dice face color</label>
+                <input
+                  type="color"
+                  value={diceFaceColor ?? computeFaceAndPip().face}
+                  onChange={(e) => setDiceFaceColor(e.target.value)}
+                  className="w-full md:w-40 h-9"
+                  aria-label="Dice face color"
+                />
+              </div>
+
+              <div className="w-full md:w-auto">
+                <label className="block text-sm">Pip / number color</label>
+                <input
+                  type="color"
+                  value={pipColor ?? computeFaceAndPip().pip}
+                  onChange={(e) => setPipColor(e.target.value)}
+                  className="w-full md:w-40 h-9"
+                  aria-label="Pip color"
+                />
+              </div>
+
+              <div className="w-full md:w-auto">
+                <label className="block text-sm">Force face (1–6 or Off)</label>
+                <select
+                  value={forceFace ?? ""}
+                  onChange={(e) =>
+                    setForceFace(e.target.value === "" ? null : Number(e.target.value))
+                  }
+                  className="w-full md:w-32 h-9"
+                  aria-label="Force die face"
+                >
+                  <option value="">Off</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                </select>
+              </div>
+
+              {/** Mixed theme specific quick palette */}
+              {diceTheme === "mixed" && (
+                <div className="mixed-palette flex gap-3 items-center">
+                  <div>
+                    <label className="block text-sm">Mixed Color A</label>
+                    <input
+                      type="color"
+                      value={mixedColor1}
+                      onChange={(e) => setMixedColor1(e.target.value)}
+                      className="w-20 h-9"
+                      aria-label="Mixed color A"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm">Mixed Color B</label>
+                    <input
+                      type="color"
+                      value={mixedColor2}
+                      onChange={(e) => setMixedColor2(e.target.value)}
+                      className="w-20 h-9"
+                      aria-label="Mixed color B"
+                    />
+                  </div>
+                  <div className="text-sm text-gray-500">Mixed uses these colors to render faces.</div>
+                </div>
+              )}
+            </div>
+
+            {/* Edit mosaic panel (toggleable) */}
+            {isEditOpen && diceGrid.length > 0 && (
+              <div className="edit-panel mt-6">
+                <h3 className="text-lg font-medium mb-2">Edit Mosaic</h3>
+                <div className="max-h-64 overflow-auto border rounded p-2 bg-white">
+                  <div
+                    className="inline-grid"
+                    style={{
+                      gridTemplateColumns: `repeat(${diceGrid[0].length}, 18px)`,
+                      gap: '2px',
+                      display: 'grid'
+                    }}
+                  >
+                    {diceGrid.map((row, r) => row.map((val, c) => {
+                      const cell = editedGrid && editedGrid[r] && editedGrid[r][c];
+                      const color = cell?.color ?? settings.faceColors[val] ?? '#ffffff';
+                      const face = cell?.face ?? val;
+                      return (
+                        <button
+                          key={`${r}-${c}`}
+                          onClick={() => setEditingTile({ r, c })}
+                          title={`Row ${r+1} Col ${c+1} — face ${face}`}
+                          style={{
+                            width: 18,
+                            height: 18,
+                            background: color,
+                            color: '#000',
+                            border: '1px solid rgba(0,0,0,0.06)'
+                          }}
+                        >
+                          <span className="sr-only">{face}</span>
+                        </button>
+                      );
+                    }))}
+                  </div>
+                </div>
+
+                {editingTile !== null && (
+                  <div className="editor mt-3 p-3 border rounded bg-gray-50">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <label className="block text-sm">Face</label>
+                        <select
+                          value={editedGrid?.[editingTile.r]?.[editingTile.c]?.face ?? diceGrid[editingTile.r][editingTile.c]}
+                          onChange={(e) => applyTileEdit(editingTile.r, editingTile.c, { face: Number(e.target.value) })}
+                          className="h-8"
+                        >
+                          {[1,2,3,4,5,6].map(n => (
+                            <option key={n} value={n}>{n}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm">Color</label>
+                        <input
+                          type="color"
+                          value={editedGrid?.[editingTile.r]?.[editingTile.c]?.color ?? settings.faceColors[diceGrid[editingTile.r][editingTile.c]]}
+                          onChange={(e) => applyTileEdit(editingTile.r, editingTile.c, { color: e.target.value })}
+                          className="h-8 w-12"
+                        />
+                      </div>
+
+                      <div>
+                        <button className="btn" onClick={() => setEditingTile(null)}>Done</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </main>
       </div>
