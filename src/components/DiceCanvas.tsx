@@ -34,8 +34,11 @@ const DiceCanvas = ({ diceGrid, settings, onCanvasReady, zoomLevel = 1, editedGr
     const cols = diceGrid[0].length;
     
     // Adjust cell size based on grid dimensions and device type
-    const maxCanvasWidth = isMobile ? window.innerWidth * 0.85 : Math.min(window.innerWidth * 0.7, 1200);
-    const maxCanvasHeight = isMobile ? window.innerHeight * 0.5 : Math.min(window.innerHeight * 0.6, 900);
+    // Compute available size from parent element so canvas fits its container
+    const parentEl = canvas.parentElement;
+    const parentRect = parentEl ? parentEl.getBoundingClientRect() : null;
+    const maxCanvasWidth = parentRect ? parentRect.width : (isMobile ? window.innerWidth * 0.85 : Math.min(window.innerWidth * 0.7, 1200));
+    const maxCanvasHeight = parentRect ? parentRect.height : (isMobile ? window.innerHeight * 0.5 : Math.min(window.innerHeight * 0.6, 900));
     
     // Calculate cell size based on available space and grid size
     const cellSizeByWidth = maxCanvasWidth / cols;
@@ -95,10 +98,12 @@ const DiceCanvas = ({ diceGrid, settings, onCanvasReady, zoomLevel = 1, editedGr
         ctx.fillRect(x + padding, y + padding, zoomedCellSize - padding * 2, zoomedCellSize - padding * 2);
 
         // Draw the dots with improved visibility
-        if (zoomedCellSize > 4 && settings.useShading) {
+        if (zoomedCellSize > 6 && settings.useShading) {
           // pip color override not currently passed to drawDiceFace, but drawDiceFace uses diceColor to compute
           drawDiceFace(ctx, diceValue, x, y, zoomedCellSize, diceColor);
         }
+
+        // No numeric labels: dots/face rendering handled by drawDiceFace
       }
     }
 

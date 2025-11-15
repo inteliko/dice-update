@@ -301,7 +301,7 @@ const Calculate = () => {
   const downloadCSV = () => {
     if (diceGrid.length === 0) return;
 
-    const headers = ["Row", "Column", "Dice Value"];
+    const headers = ["Row", "Column", "Face", "Color"];
     const csvRows = [headers];
 
     diceGrid.forEach((row, rowIndex) => {
@@ -310,7 +310,12 @@ const Calculate = () => {
         const face = editedGrid && editedGrid[rowIndex] && editedGrid[rowIndex][colIndex]
           ? editedGrid[rowIndex][colIndex].face
           : value;
-        csvRows.push([String(rowIndex + 1), String(colIndex + 1), String(face)]);
+        // color from editedGrid or theme faceColors
+        const color = editedGrid && editedGrid[rowIndex] && editedGrid[rowIndex][colIndex] && editedGrid[rowIndex][colIndex].color
+          ? editedGrid[rowIndex][colIndex].color!
+          : (settings.faceColors ? settings.faceColors[face] : "#FFFFFF");
+
+        csvRows.push([String(rowIndex + 1), String(colIndex + 1), String(face), `"${color}"`]);
       });
     });
 
@@ -637,7 +642,7 @@ const Calculate = () => {
             {isEditOpen && diceGrid.length > 0 && (
               <div className="edit-panel mt-6">
                 <h3 className="text-lg font-medium mb-2">Edit Mosaic</h3>
-                <div className="max-h-64 overflow-auto border rounded p-2 bg-white">
+                <div className="border rounded p-2 bg-white">
                   <div
                     className="inline-grid"
                     style={{

@@ -179,7 +179,7 @@ const DicePreview = ({ diceGrid, settings, blackDiceCount, whiteDiceCount, isVis
             </div>
           </div>
           
-          <div className="canvas-container flex justify-center mb-6">
+          <div className="canvas-container flex justify-center mb-6 h-[calc(100vh-320px)]">
             <DiceCanvas
               diceGrid={diceGrid}
               settings={settings}
