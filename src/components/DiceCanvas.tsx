@@ -15,13 +15,19 @@ interface DiceCanvasProps {
     color?: string;
     pipColor?: string;
   }>>;
+  // Optional callback when a tile is clicked in the canvas: (row, col)
+  onTileClick?: (r: number, c: number) => void;
 }
 
-const DiceCanvas = ({ diceGrid, settings, onCanvasReady, zoomLevel = 1, editedGrid }: DiceCanvasProps) => {
+const DiceCanvas = ({ diceGrid, settings, onCanvasReady, zoomLevel = 1, editedGrid, onTileClick }: DiceCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isMobile = useIsMobile();
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [originalCellSize, setOriginalCellSize] = useState(0);
+  const resolutionRef = useRef<number>(1);
+  const logicalCellSizeRef = useRef<number>(0);
+  const rowsRef = useRef<number>(0);
+  const colsRef = useRef<number>(0);
 
   useEffect(() => {
     if (!canvasRef.current || !diceGrid.length) return;
@@ -111,7 +117,42 @@ const DiceCanvas = ({ diceGrid, settings, onCanvasReady, zoomLevel = 1, editedGr
     if (canvas) {
       onCanvasReady(canvas);
     }
+    // store values for event coordinate mapping
+    resolutionRef.current = resolutionMultiplier;
+    logicalCellSizeRef.current = zoomedCellSize;
+    rowsRef.current = rows;
+    colsRef.current = cols;
   }, [diceGrid, settings, onCanvasReady, isMobile, zoomLevel]);
+
+  // Attach click handler to map clicks to a tile
+  useEffect(() => {
+    // no-op placeholder to keep hook ordering stable
+  }, []);
+
+  // Create a stable click handler using refs and prop
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !onTileClick) return;
+
+    const onClick = (evt: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width; // device pixels per CSS pixel
+      const scaleY = canvas.height / rect.height;
+      const resolution = resolutionRef.current || 1;
+      const logicalX = (evt.clientX - rect.left) * scaleX / resolution;
+      const logicalY = (evt.clientY - rect.top) * scaleY / resolution;
+      const cell = logicalCellSizeRef.current || 0;
+      if (cell <= 0) return;
+      const col = Math.floor(logicalX / cell);
+      const row = Math.floor(logicalY / cell);
+      if (row >= 0 && row < rowsRef.current && col >= 0 && col < colsRef.current) {
+        onTileClick(row, col);
+      }
+    };
+
+    canvas.addEventListener('click', onClick);
+    return () => canvas.removeEventListener('click', onClick);
+  }, [onTileClick]);
 
   return (
     <div className="dice-canvas-wrapper w-full overflow-x-auto">

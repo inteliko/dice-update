@@ -643,35 +643,15 @@ const Calculate = () => {
               <div className="edit-panel mt-6">
                 <h3 className="text-lg font-medium mb-2">Edit Mosaic</h3>
                 <div className="border rounded p-2 bg-white">
-                  <div
-                    className="inline-grid"
-                    style={{
-                      gridTemplateColumns: `repeat(${diceGrid[0].length}, 18px)`,
-                      gap: '2px',
-                      display: 'grid'
-                    }}
-                  >
-                    {diceGrid.map((row, r) => row.map((val, c) => {
-                      const cell = editedGrid && editedGrid[r] && editedGrid[r][c];
-                      const color = cell?.color ?? settings.faceColors[val] ?? '#ffffff';
-                      const face = cell?.face ?? val;
-                      return (
-                        <button
-                          key={`${r}-${c}`}
-                          onClick={() => setEditingTile({ r, c })}
-                          title={`Row ${r+1} Col ${c+1} — face ${face}`}
-                          style={{
-                            width: 18,
-                            height: 18,
-                            background: color,
-                            color: '#000',
-                            border: '1px solid rgba(0,0,0,0.06)'
-                          }}
-                        >
-                          <span className="sr-only">{face}</span>
-                        </button>
-                      );
-                    }))}
+                  <div className="w-full">
+                    <DiceCanvas
+                      diceGrid={diceGrid}
+                      settings={settings as MosaicSettings}
+                      onCanvasReady={() => { /* no-op for edit preview */ }}
+                      zoomLevel={1}
+                      editedGrid={editedGrid ?? undefined}
+                      onTileClick={(r, c) => setEditingTile({ r, c })}
+                    />
                   </div>
                 </div>
 
