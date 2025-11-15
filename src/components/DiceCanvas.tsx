@@ -24,10 +24,26 @@ const DiceCanvas = ({ diceGrid, settings, onCanvasReady, zoomLevel = 1, editedGr
   const isMobile = useIsMobile();
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [originalCellSize, setOriginalCellSize] = useState(0);
+  const [forceRender, setForceRender] = useState(0);
   const resolutionRef = useRef<number>(1);
   const logicalCellSizeRef = useRef<number>(0);
   const rowsRef = useRef<number>(0);
   const colsRef = useRef<number>(0);
+
+  // Listen for zoom/device pixel ratio changes
+  useEffect(() => {
+    const handleZoom = () => {
+      setForceRender(prev => prev + 1);
+    };
+    
+    window.addEventListener('resize', handleZoom);
+    window.addEventListener('orientationchange', handleZoom);
+    
+    return () => {
+      window.removeEventListener('resize', handleZoom);
+      window.removeEventListener('orientationchange', handleZoom);
+    };
+  }, []);
 
   useEffect(() => {
     if (!canvasRef.current || !diceGrid.length) return;
@@ -43,8 +59,16 @@ const DiceCanvas = ({ diceGrid, settings, onCanvasReady, zoomLevel = 1, editedGr
     // Compute available size from parent element so canvas fits its container
     const parentEl = canvas.parentElement;
     const parentRect = parentEl ? parentEl.getBoundingClientRect() : null;
-    const maxCanvasWidth = parentRect ? parentRect.width : (isMobile ? window.innerWidth * 0.85 : Math.min(window.innerWidth * 0.7, 1200));
-    const maxCanvasHeight = parentRect ? parentRect.height : (isMobile ? window.innerHeight * 0.5 : Math.min(window.innerHeight * 0.6, 900));
+    
+    // Fallback to viewport dimensions if parent has no size or is not visible
+    let maxCanvasWidth = isMobile ? window.innerWidth * 0.9 : Math.min(window.innerWidth * 0.8, 1400);
+    let maxCanvasHeight = isMobile ? window.innerHeight * 0.5 : Math.min(window.innerHeight * 0.65, 900);
+    
+    // If parent element exists and has reasonable dimensions, use them
+    if (parentEl && parentRect && parentRect.width > 100 && parentRect.height > 100) {
+      maxCanvasWidth = Math.min(parentRect.width - 20, 1400);
+      maxCanvasHeight = Math.min(parentRect.height - 20, 900);
+    }
     
     // Calculate cell size based on available space and grid size
     const cellSizeByWidth = maxCanvasWidth / cols;
@@ -76,15 +100,15 @@ const DiceCanvas = ({ diceGrid, settings, onCanvasReady, zoomLevel = 1, editedGr
     // Scale the context to match the resolution multiplier
     ctx.scale(resolutionMultiplier, resolutionMultiplier);
     
-    // Fill canvas with theme-appropriate background
-    if (settings.theme === "black") {
-      ctx.fillStyle = "#111111";
-    } else if (settings.theme === "white") {
-      ctx.fillStyle = "#F8F8F8";
-    } else {
-      ctx.fillStyle = "#FFFFFF"; // Default background for mixed theme
+    // Clear canvas with transparent background (don't fill with solid color)
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    
+    // Only set background color for non-white/black themes or for visual separation
+    // Don't use solid fill for black/white themes as it obscures the grid
+    if (settings.theme !== "black" && settings.theme !== "white") {
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     }
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     
     // Draw each dice cell with improved styling and resolution
     for (let row = 0; row < rows; row++) {
@@ -103,10 +127,21 @@ const DiceCanvas = ({ diceGrid, settings, onCanvasReady, zoomLevel = 1, editedGr
         const padding = zoomedCellSize * 0.01; // Reduced padding for more accurate image representation
         ctx.fillRect(x + padding, y + padding, zoomedCellSize - padding * 2, zoomedCellSize - padding * 2);
 
-        // Draw the dots with improved visibility
-        if (zoomedCellSize > 6 && settings.useShading) {
-          // pip color override not currently passed to drawDiceFace, but drawDiceFace uses diceColor to compute
+        // Always draw the dots/pips, regardless of cell size
+        // Reduce minimum threshold for small cells so dots still render when zoomed out
+        if (zoomedCellSize > 3 && settings.useShading) {
+          // Draw dice face with pips
           drawDiceFace(ctx, diceValue, x, y, zoomedCellSize, diceColor);
+        } else if (zoomedCellSize <= 3 && settings.useShading) {
+          // For very small cells, draw a minimal indicator dot in the center
+          const dotRadius = Math.max(0.3, zoomedCellSize * 0.15);
+          const brightness = (parseInt(diceColor.slice(1, 3), 16) * 0.299 + 
+                             parseInt(diceColor.slice(3, 5), 16) * 0.587 + 
+                             parseInt(diceColor.slice(5, 7), 16) * 0.114);
+          ctx.fillStyle = brightness > 128 ? '#000000' : '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(x + zoomedCellSize / 2, y + zoomedCellSize / 2, dotRadius, 0, Math.PI * 2);
+          ctx.fill();
         }
 
         // No numeric labels: dots/face rendering handled by drawDiceFace
@@ -122,7 +157,7 @@ const DiceCanvas = ({ diceGrid, settings, onCanvasReady, zoomLevel = 1, editedGr
     logicalCellSizeRef.current = zoomedCellSize;
     rowsRef.current = rows;
     colsRef.current = cols;
-  }, [diceGrid, settings, onCanvasReady, isMobile, zoomLevel]);
+  }, [diceGrid, settings, onCanvasReady, isMobile, zoomLevel, forceRender, editedGrid]);
 
   // Attach click handler to map clicks to a tile
   useEffect(() => {

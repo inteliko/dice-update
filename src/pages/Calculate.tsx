@@ -642,8 +642,8 @@ const Calculate = () => {
             {isEditOpen && diceGrid.length > 0 && (
               <div className="edit-panel mt-6">
                 <h3 className="text-lg font-medium mb-2">Edit Mosaic</h3>
-                <div className="border rounded p-2 bg-white">
-                  <div className="w-full">
+                <div className="border rounded p-2 bg-white min-h-96">
+                  <div className="w-full h-96 flex items-center justify-center">
                     <DiceCanvas
                       diceGrid={diceGrid}
                       settings={settings as MosaicSettings}
